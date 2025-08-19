@@ -6,6 +6,7 @@ import (
     "io"
     "github.com/Ga11eaN/pokedex/internal/pokecache"
     "time"
+    "fmt"
 )
 
 var cache pokecache.Cache
@@ -53,3 +54,49 @@ func MapGet(url string) (LocationAreaCall, error) {
     return locations, nil
 }
 
+type PokemonAreaCall struct {
+    Pokemons []PokemonEncounter `json:"pokemon_encounters"`
+}
+
+type PokemonEncounter struct {
+    Pokemon struct {
+        Name string `json:"name"`
+        URL  string `json:"url"`
+    } `json:"pokemon"`
+}
+
+func GetPokemons(url string) (PokemonAreaCall, error) {
+    var bodyBytes []byte
+    var err error
+
+    bodyBytes, ok := cache.Get(url)
+    if !ok {
+        response, err := http.Get(url)
+        if err != nil {
+            // Server down / network issue
+            return PokemonAreaCall{}, fmt.Errorf("could not connect: %v", err)
+        }
+        if response.StatusCode == 404 {
+            // Bad location
+            return PokemonAreaCall{}, fmt.Errorf("location area not found")
+        }
+        if response.StatusCode > 299 {
+            // Other API/server error
+            return PokemonAreaCall{}, fmt.Errorf("server error: %d", response.StatusCode)
+        }
+        bodyBytes, err = io.ReadAll(response.Body)
+        if err != nil {
+            return PokemonAreaCall{}, err
+        }
+        cache.Add(url, bodyBytes)
+    }
+
+
+    var pokemons PokemonAreaCall
+    err = json.Unmarshal(bodyBytes, &pokemons)
+    if err != nil {
+        return PokemonAreaCall{}, err
+    }
+
+    return pokemons, nil
+}

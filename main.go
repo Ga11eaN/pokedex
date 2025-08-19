@@ -12,7 +12,7 @@ import (
 type cliCommand struct {
     name string
     description string
-    callback func(*Config) error
+    callback func(cfg *Config, args ...string) error
 }
 
 var commands map[string]cliCommand
@@ -49,10 +49,15 @@ func main() {
                 description: "Show next 20 areas on map",
                 callback: commandMap,
             },
-            "mapb" : {
+            "mapb": {
                 name: "mapb",
                 description: "Show 20 previous areas on map",
                 callback: commandMapb,
+            },
+            "explore": {
+                name: "explore {area}",
+                description: "Explore area and search for pokemons",
+                callback: commandExplore,
             },
         }
 
@@ -61,7 +66,7 @@ func main() {
         } else {
             cmd, exists := commands[cleanedStr[0]]
             if exists {
-                err := cmd.callback(&config)
+                err := cmd.callback(&config, cleanedStr[1:]...)
                 if err != nil {
                     fmt.Printf("Error while running command, %v\n", err)
                 }
@@ -83,13 +88,13 @@ func cleanInput(text string) []string {
     return strings.Fields(cleaned)
 }
 
-func commandExit(config *Config) error {
+func commandExit(config *Config, args ...string) error {
     fmt.Println("Closing the Pokedex... Goodbye!")
     os.Exit(0)
     return nil
 }
 
-func commandHelp(config *Config) error {
+func commandHelp(config *Config, args ...string) error {
     fmt.Println("Welcome to the Pokedex!")
     fmt.Printf("Usage:\n\n")
     for _, cmd := range commands {
@@ -114,7 +119,7 @@ func printAreaLocations(config *Config, url string) error {
     return nil
 }
 
-func commandMap(config *Config) error {
+func commandMap(config *Config, args ...string) error {
     var url string
     if config.Next != "" {
         url = config.Next
@@ -124,7 +129,7 @@ func commandMap(config *Config) error {
     return printAreaLocations(config, url)
 }
 
-func commandMapb(config *Config) error {
+func commandMapb(config *Config, args ...string) error {
     if config.Previous == "" {
         fmt.Println("you're on the first page")
     } else {
@@ -133,3 +138,25 @@ func commandMapb(config *Config) error {
     return nil
 }
 
+func commandExplore(config *Config, args ...string) error {
+    if len(args) < 0 {
+        fmt.Println("Please enter location name to explore")
+        return nil
+    }
+    location := args[0]
+    fmt.Println("Exploring ", location)
+    url := "https://pokeapi.co/api/v2/location-area/" + location +"/"
+    return printPokemons(url)
+}
+
+func printPokemons(url string) error {
+
+    resp, err := pokeapi.GetPokemons(url)
+    if err != nil {
+        fmt.Println(err)
+    }
+    for _, pokemon := range(resp.Pokemons) {
+        fmt.Println(" -", pokemon.Pokemon.Name)
+    }
+    return nil
+}
