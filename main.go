@@ -68,6 +68,16 @@ func main() {
                 description: "Catch pokemon",
                 callback: commandCatch,
             },
+            "inspect" : {
+                name: "inspect {pokemon}",
+                description: "Inspects pokemon",
+                callback: commandInspect,
+            },
+            "pokedex": {
+                name: "pokedex",
+                description: "Check all pokemons in Pokedex",
+                callback: commandPokedex,
+            },
         }
 
         if len(cleanedStr) < 1 {
@@ -193,5 +203,43 @@ func commandCatch(config *Config, args ...string) error {
         fmt.Println(pokemonName, "escaped!")
     }
 
+    return nil
+}
+
+func commandInspect(config *Config, args ...string) error {
+    if len(args) < 0 {
+        fmt.Println("Please enter pokemon name to inspect")
+        return nil
+    }
+    pokemonName := args[0]
+    pokemon, ok := pokedex[pokemonName]
+    if !ok {
+        fmt.Println(pokemonName, "is not in pokedex")
+        return nil
+    }
+    fmt.Println("Name:", pokemon.Name)
+    fmt.Println("Height:", pokemon.Height)
+    fmt.Println("Weight:", pokemon.Weight)
+    fmt.Println("Stats:")
+    for _, stat := range(pokemon.Stats) {
+        fmt.Printf("  -%s: %d\n", stat.Stat.Name, stat.BaseStat)
+    }
+    fmt.Println("Types:")
+    for _, pokeType := range(pokemon.Types) {
+        fmt.Printf("  - %s\n", pokeType.Type.Name)
+    }
+    return nil
+}
+
+func commandPokedex(config *Config, args ...string) error {
+    if len(pokedex) == 0 {
+        fmt.Println("You do not have pokemons in Pokedex")
+        return nil
+    }
+
+    fmt.Println("Your Pokedex:")
+    for name, _ := range(pokedex) {
+        fmt.Println(" -", name)
+    }
     return nil
 }
