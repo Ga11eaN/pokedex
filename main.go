@@ -6,6 +6,7 @@ import (
     "bufio"
     "os"
     "github.com/Ga11eaN/pokedex/internal/pokeapi"
+    "math/rand"
 )
 
 
@@ -24,8 +25,11 @@ type Config struct {
 
 var config Config
 
+var pokedex map[string]pokeapi.Pokemon
+
 func main() {
     scanner := bufio.NewScanner(os.Stdin)
+    pokedex = make(map[string]pokeapi.Pokemon)
     for {
         fmt.Print("Pokedex > ")
         scanner.Scan()
@@ -58,6 +62,11 @@ func main() {
                 name: "explore {area}",
                 description: "Explore area and search for pokemons",
                 callback: commandExplore,
+            },
+            "catch": {
+                name: "catch {pokemon}",
+                description: "Catch pokemon",
+                callback: commandCatch,
             },
         }
 
@@ -156,7 +165,33 @@ func printPokemons(url string) error {
         fmt.Println(err)
     }
     for _, pokemon := range(resp.Pokemons) {
-        fmt.Println(" -", pokemon.Pokemon.Name)
+        fmt.Println(" -", pokemon.PokemonList.Name)
     }
+    return nil
+}
+
+func commandCatch(config *Config, args ...string) error {
+    if len(args) < 0 {
+        fmt.Println("Please enter pokemon name to explore")
+        return nil
+    }
+    pokemonName := args[0]
+    fmt.Printf("Throwing a Pokeball at %s...\n", pokemonName)
+    url := "https://pokeapi.co/api/v2/pokemon/" + pokemonName
+
+    resp, err := pokeapi.CatchPokemon(url)
+    if err != nil {
+        fmt.Println(err)
+        return nil
+    }
+
+    random_int := rand.Intn(700)
+    if random_int > resp.BaseExperience {
+        pokedex[pokemonName] = resp
+        fmt.Println(pokemonName, "was caught!")
+    } else {
+        fmt.Println(pokemonName, "escaped!")
+    }
+
     return nil
 }

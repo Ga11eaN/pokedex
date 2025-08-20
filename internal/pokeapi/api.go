@@ -59,7 +59,7 @@ type PokemonAreaCall struct {
 }
 
 type PokemonEncounter struct {
-    Pokemon struct {
+    PokemonList struct {
         Name string `json:"name"`
         URL  string `json:"url"`
     } `json:"pokemon"`
@@ -99,4 +99,38 @@ func GetPokemons(url string) (PokemonAreaCall, error) {
     }
 
     return pokemons, nil
+}
+
+type Pokemon struct {
+    Name string `json:"name"`
+    BaseExperience int `json:"base_experience"`
+}
+
+func CatchPokemon(url string) (Pokemon, error) {
+    response, err := http.Get(url)
+    if err != nil {
+        // Server down / network issue
+        return Pokemon{}, fmt.Errorf("could not connect: %v", err)
+    }
+    if response.StatusCode == 404 {
+        // Bad location
+        return Pokemon{}, fmt.Errorf("Pokemon was not found")
+    }
+    if response.StatusCode > 299 {
+        // Other API/server error
+        return Pokemon{}, fmt.Errorf("server error: %d", response.StatusCode)
+    }
+
+    bodyBytes, err := io.ReadAll(response.Body)
+    if err != nil {
+        return Pokemon{}, err
+    }
+
+    var pokemon Pokemon
+    err = json.Unmarshal(bodyBytes, &pokemon)
+    if err != nil {
+        return Pokemon{}, err
+    }
+
+    return pokemon, nil
 }
